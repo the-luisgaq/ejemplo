@@ -1,0 +1,35 @@
+image: hashicorp/terraform:light
+
+stages:
+  - validate
+  - plan
+  - apply
+
+before_script:
+  - terraform version
+  - terraform init -backend=false terraform/environments/dev
+
+validate:
+  stage: validate
+  script:
+    - terraform -chdir=terraform/environments/dev validate
+  rules:
+    - when: always
+
+plan:
+  stage: plan
+  script:
+    - terraform -chdir=terraform/environments/dev plan -out=plan.tfplan
+  artifacts:
+    paths:
+      - terraform/environments/dev/plan.tfplan
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+apply:
+  stage: apply
+  script:
+    - terraform -chdir=terraform/environments/dev apply -auto-approve plan.tfplan
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
